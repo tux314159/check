@@ -2,3 +2,4 @@
 *.tst
 *.gen
 *.a
+tests/check

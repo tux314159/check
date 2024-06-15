@@ -70,12 +70,4 @@ random_uint(void);
 unsigned long
 random_ulong(void);
 
-struct TestEnv;
-void
-setup_env(struct TestEnv **env);
-void
-teardown_env(struct TestEnv *env);
-void
-test(struct TestEnv *env);
-
 #endif
