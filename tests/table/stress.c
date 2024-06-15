@@ -1,5 +1,5 @@
 #include "table.h"
-#include "../test.h"
+#include "../check.h"
 
 #include <stdio.h>
 

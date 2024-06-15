@@ -11,7 +11,7 @@ test(struct TestEnv *env)
 {
 	bool *deleted;
 
-	deleted = calloc(sizeof(*deleted), env->N);
+	deleted = calloc(env->N, sizeof(*deleted));
 	assert_not_null(deleted);
 
 	/* Randomly delete a third of the values */

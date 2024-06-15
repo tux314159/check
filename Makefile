@@ -1,7 +1,7 @@
 .POSIX:
 
 .PHONY: all test clean
-.SUFFIXES: .c .o .tst
+.SUFFIXES: .c .o
 
 CC = cc
 CWARN = -pedantic -Wall -Wextra -Wpedantic -Wbad-function-cast \
@@ -9,8 +9,9 @@ CWARN = -pedantic -Wall -Wextra -Wpedantic -Wbad-function-cast \
 		-Wno-missing-declarations -Wmissing-include-dirs -Wnested-externs \
 		-Wpointer-arith -Wsequence-point -Wshadow -Wsign-conversion \
 		-Wstrict-prototypes -Wswitch -Wundef -Wunreachable-code \
-		-Wno-unused-function -Wwrite-strings
-CFLAGS = -std=c99 -O2 -Iinclude/ \
+		-Wno-unused-function -Wwrite-strings -Wno-format-extra-args \
+		-Wno-unused-variable -Wno-unused-parameter
+CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
 		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
 LDLIBS = -lpthread -ldl
 OBJS = src/hash.o src/table.o
@@ -19,8 +20,6 @@ all: test
 
 .c.o:
 	$(CC) -c $(CFLAGS) -o $@ $<
-.o.tst:
-	$(CC) $(LDFLAGS) -o $@ $(LDLIBS) $< test/test.o $(OBJS)
 
 main: src/main.o $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(LDLIBS) src/main.o $(OBJS)

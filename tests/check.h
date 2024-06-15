@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Utility macros */
+
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
 /* Output functions/macros */
 
 enum MsgT {
@@ -36,11 +40,11 @@ static const char *_msgtstr[msgt_end] =
 				#x,                                                         \
 				#y,                                                         \
 				x,                                                          \
-				y                                                           \
+                y                                                           \
 			);                                                              \
 			exit(1);                                                        \
 		}                                                                   \
-	}	while (0)
+	} while (0)
 
 #define assert_null(x) _ASSERT_CMP(x, NULL, ==, "NULL")
 #define assert_not_null(x) _ASSERT_CMP(x, NULL, !=, "NULL")
