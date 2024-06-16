@@ -106,6 +106,33 @@ is_test_so(const struct dirent *ent)
 	return !strcmp(ent->d_name + name_len - 4, ".tst");
 }
 
+static void
+redirect_io_begin(int output_file)
+{
+	fflush(stdout);
+	fflush(stderr);
+	dup2(output_file, STDOUT_FILENO);
+	dup2(output_file, STDERR_FILENO);
+}
+
+static char *
+redirect_io_end(int output_file, int stdout_save, int stderr_save)
+{
+	char *output;
+	size_t output_len;
+
+	dup2(stdout_save, STDOUT_FILENO);
+	dup2(stderr_save, STDERR_FILENO);
+	output_len = (size_t)lseek(output_file, 0, SEEK_END);
+	output = malloc((size_t)output_len + 1);
+	output[output_len] = '\0';
+	lseek(output_file, 0, SEEK_SET);
+	read(output_file, output, output_len);
+	ftruncate(output_file, 0);
+
+	return output;
+}
+
 /* Usage: $0 <seed> <suite> [<test1> <test2> ...]*/
 int
 main(int argc, char **argv)
@@ -163,6 +190,11 @@ main(int argc, char **argv)
 		void (*setup_env)(struct TestEnv **env);
 		void (*teardown_env)(struct TestEnv *env);
 
+		char *output;
+		int output_file;
+		char output_file_name[] = "/tmp/check-XXXXXX";
+		int stdout_save, stderr_save;
+
 		setup_obj = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
 		assert_not_null(setup_obj);
 		setup_env = (void (*)(struct TestEnv **))dlsym(setup_obj, "setup_env");
@@ -171,23 +203,44 @@ main(int argc, char **argv)
 			(void (*)(struct TestEnv *))dlsym(setup_obj, "teardown_env");
 		assert_not_null(teardown_env);
 
+		// Look, realistically dup(2) and fflush won't fail
+		stdout_save = dup(STDOUT_FILENO);
+		stderr_save = dup(STDERR_FILENO);
+		output_file = mkstemp(output_file_name);
+		assert_int_neq(output_file, -1);
+
+		redirect_io_begin(output_file);
 		if (!setjmp(_assert_trampoline)) {
 			setup_env(&env);
-			printf(T_GREEN T_BOLD "OK\n" T_NORM);
+			output = redirect_io_end(output_file, stdout_save, stderr_save);
+			printf(T_GREEN T_BOLD "OK" T_NORM "\n");
+			printf("%s", output);
+			free(output);
 		} else {
-			printf(T_RED T_BOLD "FAIL\n" T_NORM);
+			output = redirect_io_end(output_file, stdout_save, stderr_save);
+			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
+			printf("%s", output);
+			free(output);
+			exit(0);
 		}
 
 		for (size_t i = 0; i < n_tests; i++) {
+			int exit_status;
+
 			sprintf(path, "%s/%s.tst", argv[2], test_obj_basenames[i]);
 			printf(" test " T_ITAL "%s" T_NORM "... ", test_obj_basenames[i]);
-			if (run_test_so(path, env, teardown_env) == 0)
-				printf(T_GREEN T_BOLD "OK\n" T_NORM);
+			redirect_io_begin(output_file);
+			exit_status = run_test_so(path, env, teardown_env);
+			output = redirect_io_end(output_file, stdout_save, stderr_save);
+
+			if (exit_status == 0)
+				printf(T_GREEN T_BOLD "OK" T_NORM "\n");
 			else
-				printf(T_RED T_BOLD "FAIL\n" T_NORM);
+				printf(T_RED T_BOLD "FAIL" T_NORM "\n");
+			printf("%s", output);
+			free(output);
 		}
-
-
+		close(output_file);
 		dlclose(setup_obj);
 	}
 
