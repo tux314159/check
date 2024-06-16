@@ -29,7 +29,7 @@ printf \
 	"$test_dir";
 
 printf \
-	"%s/check: %s/check.c %s/checklib.o %s/check.h\n\t\$(CC) \$(LDFLAGS) -o \$@ \$(LDLIBS) -ldl \$<\n" \
+	"%s/check: %s/check.c %s/checklib.o %s/check.h\n\t\$(CC) \$(LDFLAGS) -rdynamic -o \$@ \$(LDLIBS) -ldl \$<\n" \
 	"$test_dir" "$test_dir" "$test_dir" "$test_dir";
 
 find "$(dirname "$0")" -mindepth 2 -maxdepth 2 -name "*.c" -exec sh -c '

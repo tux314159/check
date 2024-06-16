@@ -43,6 +43,7 @@ setup_env(struct TestEnv **env)
 	assert_not_null((*env)->keys);
 	assert_int_neq(table_init(&(*env)->tbl), -1);
 
+
 	populate_table(*env);
 }
 

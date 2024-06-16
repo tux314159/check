@@ -1,9 +1,11 @@
-#ifndef INCLUDE_TEST_H
-#define INCLUDE_TEST_H
+#ifndef INCLUDE_CHECK_H
+#define INCLUDE_CHECK_H
 
+#include <setjmp.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 
 /* Utility macros */
 
@@ -28,6 +30,8 @@ static const char *_msgtstr[msgt_end] =
 
 /* All the asserts */
 
+extern jmp_buf _assert_trampoline;
+
 #define _ASSERT_CMP(x, y, op, fmt)                                          \
 	do {                                                                    \
 		if (!(x op y)) {                                                    \
@@ -42,7 +46,7 @@ static const char *_msgtstr[msgt_end] =
 				x,                                                          \
                 y                                                           \
 			);                                                              \
-			exit(1);                                                        \
+			longjmp(_assert_trampoline, 1);                                 \
 		}                                                                   \
 	} while (0)
 
