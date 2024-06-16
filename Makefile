@@ -11,8 +11,9 @@ CWARN = -pedantic -Wall -Wextra -Wpedantic -Wbad-function-cast \
 		-Wstrict-prototypes -Wswitch -Wundef -Wunreachable-code \
 		-Wno-unused-function -Wwrite-strings -Wno-format-extra-args \
 		-Wno-unused-variable -Wno-unused-parameter
-CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
+CFLAGS = -std=c99 -O2 -fpic -g -Iinclude/ \
 		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
+LDFLAGS = $(CFLAGS)
 LDLIBS = -lpthread -ldl
 OBJS = src/hash.o src/table.o
 

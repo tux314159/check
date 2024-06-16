@@ -1,3 +1,4 @@
+#include <dirent.h>
 #include <dlfcn.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,6 +45,18 @@ wait_and_report(void)
 
 	return child_stat;
 }
+
+static int
+is_test_so(const struct dirent *ent)
+{
+	size_t name_len;
+
+	name_len = strlen(ent->d_name);
+	if (name_len <= 4 || !strcmp(ent->d_name, "setup.tst"))
+		return 0;
+	return !strcmp(ent->d_name + name_len - 4, ".tst");
+}
+
 /* Usage: $0 <seed> <suite> [<test1> <test2> ...]*/
 int
 main(int argc, char **argv)
@@ -59,21 +72,26 @@ main(int argc, char **argv)
 	assert_int(argc, >=, 3);
 
 	if (argc == 3) {
-		// TODO
-		n_tests = 0;
-		test_obj_basenames = malloc(sizeof(*test_obj_basenames));
-		test_obj_basenames[0] = NULL;
+		// Find all tests
+		struct dirent **test_ents;
+
+		n_tests = (size_t)scandir(argv[2], &test_ents, is_test_so, alphasort);
+		assert_ulong_neq(n_tests, -1UL);
+		test_obj_basenames = malloc((n_tests + 1) * sizeof(*test_obj_basenames));
+		for (size_t i = 0; i < n_tests; i++) {
+			test_ents[i]->d_name[strlen(test_ents[i]->d_name) - 4] = '\0';
+			test_obj_basenames[i] = test_ents[i]->d_name;
+		}
 	} else {
 		n_tests = (unsigned)argc - 3;
 		test_obj_basenames = malloc((n_tests + 1) * sizeof(*test_obj_basenames));
-		for (size_t i = 0; i < n_tests; i++){
+		for (size_t i = 0; i < n_tests; i++)
 			test_obj_basenames[i] = argv[i + 3];
-		}
-		test_obj_basenames[n_tests] = NULL;
 	}
+	test_obj_basenames[n_tests] = NULL;
 
 	/* Allocate path size large enough for all */
-	path_size = strlen(argv[1]) + MAX(max_strlen(test_obj_basenames), strlen("setup")) + sizeof(TEST_SUFFIX);
+	path_size = strlen(argv[2]) + 1 + MAX(max_strlen(test_obj_basenames), strlen("setup")) + sizeof(TEST_SUFFIX);
 	path = malloc(path_size);
 	sprintf(path, "%s/setup.tst", argv[2]);
 
@@ -123,7 +141,6 @@ main(int argc, char **argv)
 		if (pid) { // parent
 			wait_and_report();
 		} else { // child
-
 			sprintf(path, "%s/%s.tst", argv[2], test_obj_basenames[i]);
 			test_obj = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
 			assert_not_null(test_obj);
