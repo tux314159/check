@@ -21,28 +21,28 @@ TESTFILE!.tst: TESTFILE!.c %s/checklib.o %s/check.h %s/lib.a
 
 rm -f "$gen_makefile_name"
 
+tests=$(find "$(dirname "$0")" -mindepth 2 -maxdepth 2 -name "*.c" -exec sh -c '
+	printf "$(dirname "$1")/$(basename "$1" .c).tst "' \
+	sh {} \;)
 
 {
 
+printf ".PHONY: test_real\n\n"
+
 printf \
-	"%s/lib.a: \$(OBJS)\n\tar rcs \$@ \$(OBJS)\n" \
-	"$test_dir";
+	"test_real: %s %s/check\n\t%s/check -a\n\n" \
+	"$tests" "$test_dir" "$test_dir"
 
 printf \
 	"%s/check: %s/check.c %s/checklib.o %s/check.h\n\t\$(CC) \$(LDFLAGS) -rdynamic -o \$@ \$(LDLIBS) -ldl \$<\n" \
 	"$test_dir" "$test_dir" "$test_dir" "$test_dir";
+
+printf \
+	"%s/lib.a: \$(OBJS)\n\tar rcs \$@ \$(OBJS)\n" \
+	"$test_dir";
 
 find "$(dirname "$0")" -mindepth 2 -maxdepth 2 -name "*.c" -exec sh -c '
 printf "%s" "$1" | sed "s|TESTFILE!|$(dirname "$2")/$(basename "$2" .c)|g"' \
 	sh "$make_unit_tmpl" {} "$gen_makefile_name" \;;
 
 } >>"$gen_makefile_name"
-
-
-tests=$(find "$(dirname "$0")" -mindepth 2 -maxdepth 2 -name "*.c" -exec sh -c '
-	printf "$(dirname "$1")/$(basename "$1" .c).tst "' \
-	sh {} \;)
-
-printf \
-	"test_real: %s %s/check \n\t%s/run-tests.sh\n" \
-	"$tests" "$test_dir" "$test_dir" >>"$gen_makefile_name"

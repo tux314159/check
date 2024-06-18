@@ -30,5 +30,6 @@
 -Wundef
 -Wunreachable-code
 
+-Wno-format-extra-args
 -Wno-unused-function
 -Wwrite-strings

@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /* Utility macros */
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -20,7 +19,7 @@ enum MsgT {
 	msgt_end,
 };
 static const char *_msgtstr[msgt_end] =
-	{"INFO", "WARN", "ERROR"}; /* not a macro so we don't forget to update it */
+	{"INFO", "WARN", "ERROR"}; // not a macro so we don't forget to update it
 
 #define test_output(type, msg, ...)                          \
 	do {                                                     \
@@ -44,7 +43,7 @@ extern jmp_buf _assert_trampoline;
 				#x,                                                         \
 				#y,                                                         \
 				x,                                                          \
-                y                                                           \
+				y                                                           \
 			);                                                              \
 			longjmp(_assert_trampoline, 1);                                 \
 		}                                                                   \
@@ -58,12 +57,21 @@ extern jmp_buf _assert_trampoline;
 #define assert_uint(x, op, y) _ASSERT_CMP(x, y, op, "%u")
 #define assert_uint_eq(x, y) assert_uint(x, ==, y)
 #define assert_uint_neq(x, y) assert_uint(x, !=, y)
-#define assert_long(x, op, y) _ASSERT_CMP(x, y, op, "%l")
+#define assert_long(x, op, y) _ASSERT_CMP(x, y, op, "%ld")
 #define assert_long_eq(x, y) assert_long(x, ==, y)
 #define assert_long_neq(x, y) assert_long(x, !=, y)
 #define assert_ulong(x, op, y) _ASSERT_CMP(x, y, op, "%lu")
 #define assert_ulong_eq(x, y) assert_ulong(x, ==, y)
 #define assert_ulong_neq(x, y) assert_ulong(x, !=, y)
+#define assert_llong(x, op, y) _ASSERT_CMP(x, y, op, "%lld")
+#define assert_llong_eq(x, y) assert_llong(x, ==, y)
+#define assert_llong_neq(x, y) assert_llong(x, !=, y)
+
+#define assert_quiet(expr)                    \
+	do {                                      \
+		if (!(expr))                          \
+			longjmp(_assert_trampoline, 1);   \
+	} while (0);
 
 /* Random generators */
 
