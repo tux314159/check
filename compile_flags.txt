@@ -33,5 +33,3 @@
 -Wno-format-extra-args
 -Wno-unused-function
 -Wwrite-strings
-
--fanalyzer
