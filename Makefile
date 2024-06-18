@@ -4,15 +4,15 @@
 .SUFFIXES: .c .o
 
 CC = cc
-CWARN = -pedantic -Wall -Wextra -Wbad-function-cast \
-		-Wcast-align -Wcast-qual -Wfloat-equal -Wformat=2 \
-		-Wdeclaration-after-statement -Wno-missing-declarations \
-		-Wmissing-include-dirs -Wnested-externs -Wpointer-arith \
-		-Wsequence-point -Wshadow -Wsign-conversion \
-		-Wstrict-prototypes -Wswitch -Wundef -Wunreachable-code \
-		-Wno-unused-function -Wwrite-strings -Wno-format-extra-args \
-		-Wno-unused-variable -Wno-unused-parameter
-CFLAGS = -std=c99 -O2 -fpic -g -Iinclude/ \
+CWARN = -Wall -Wextra -Wbad-function-cast -Wcast-align -Wcast-qual \
+		-Wfloat-equal -Wformat=2 -Wdeclaration-after-statement \
+		-Wno-missing-declarations -Wmissing-include-dirs \
+		-Wnested-externs -Wpointer-arith -Wsequence-point -Wshadow \
+		-Wsign-conversion -Wstrict-prototypes -Wswitch -Wundef \
+		-Wunreachable-code -Wno-unused-function -Wwrite-strings \
+		-Wno-format-extra-args -Wno-unused-variable \
+		-Wno-unused-parameter
+CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
 		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
 LDFLAGS = $(CFLAGS)
 LDLIBS = -lpthread -ldl

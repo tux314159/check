@@ -15,11 +15,13 @@ populate_table(struct TestEnv *env)
 	char buf[width];
 
 	for (unsigned i = 0; i < env->N; i++) {
+		unsigned long x;
+
 		do {
 			random_string(buf, width);
 		} while (table_find(&env->tbl, buf));
 
-		unsigned long x = 1;
+		x = 1;
 		for (size_t j = 0; j < width - 1; j++) {
 			x *= (unsigned long)buf[j];
 		}
