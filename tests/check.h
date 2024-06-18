@@ -51,6 +51,9 @@ extern jmp_buf _assert_trampoline;
 
 #define assert_null(x) _ASSERT_CMP(x, NULL, ==, "NULL")
 #define assert_not_null(x) _ASSERT_CMP(x, NULL, !=, "NULL")
+#define assert_ptr(x, op, y) _ASSERT_CMP(x, y, op, "%p")
+#define assert_ptr_eq(x, y) assert_ptr(x, ==, y)
+#define assert_ptr_neq(x, y) assert_ptr(x, !=, y)
 #define assert_int(x, op, y) _ASSERT_CMP(x, y, op, "%d")
 #define assert_int_eq(x, y) assert_int(x, ==, y)
 #define assert_int_neq(x, y) assert_int(x, !=, y)

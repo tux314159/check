@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <dlfcn.h>
+#include <errno.h>
 #include <libgen.h>
 #include <setjmp.h>
 #include <stdlib.h>
@@ -25,7 +26,7 @@
 #define T_RED "\x1b[38;5;1m"
 #define T_NORM "\x1b[0m"
 
-extern struct TestEnv;
+struct TestEnv;
 
 struct Suite {
 	size_t n_tests;
@@ -50,6 +51,21 @@ max_strlen(char **ss)
 	return res;
 }
 
+static void
+usage(char *exe)
+{
+	printf("Usage: %s [-h] [-a] [-s <seed>] [<suite1> <suite1> ...]\n", exe);
+}
+
+static void
+*malloc_s(size_t n)
+{
+	void *p;
+	p = malloc(n);
+	assert_not_null(p);
+	return p;
+}
+
 /* scandir(3p) filters */
 
 static int
@@ -69,8 +85,7 @@ is_suite_dir(const struct dirent *ent)
 	struct stat sb;
 	char *buf;
 
-	buf = malloc(strlen(testdir_path) + strlen(ent->d_name) + 2);
-	assert_not_null(buf);
+	buf = malloc_s(strlen(testdir_path) + strlen(ent->d_name) + 2);
 	sprintf(buf, "%s/%s", testdir_path, ent->d_name);
 	assert_int_neq(stat(buf, &sb), -1);
 	free(buf);
@@ -101,7 +116,7 @@ redirect_io_end(int output_file, int stdout_save, int stderr_save)
 	dup2(stdout_save, STDOUT_FILENO);
 	dup2(stderr_save, STDERR_FILENO);
 	output_len = (size_t)lseek(output_file, 0, SEEK_END);
-	output = malloc((size_t)output_len + 1);
+	output = malloc_s((size_t)output_len + 1);
 	output[output_len] = '\0';
 	lseek(output_file, 0, SEEK_SET);
 	read(output_file, output, output_len);
@@ -174,7 +189,7 @@ run_suite(const struct Suite *suite)
 	path_size = max_strlen(suite->test_basenames);
 	path_size = strlen(testdir_path) + 1 + MAX(path_size, strlen("setup")) +
 		sizeof(TEST_SUFFIX);
-	path = malloc(path_size);
+	path = malloc_s(path_size);
 
 	sprintf(path, "%s/%s/setup.tst", testdir_path, suite->name);
 	setup_obj = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
@@ -227,11 +242,13 @@ run_suite(const struct Suite *suite)
 		printf("%s", output);
 		free(output);
 	}
-	close(output_file);
 	dlclose(setup_obj);
+	close(stdout_save);
+	close(stderr_save);
+	close(output_file);
+	free(path);
 }
 
-/* Usage: $0 <seed> <suite> [<test1> <test2> ...]*/
 int
 main(int argc, char **argv)
 {
@@ -245,12 +262,13 @@ main(int argc, char **argv)
 	/* Initial setup */
 
 	if (setjmp(_assert_trampoline)) {
-		perror("Error");
+		if (errno)
+			perror("Error");
+		usage(argv[0]);
 		exit(1);
 	}
 
-	testdir_path = malloc(strlen(argv[0]) + 1);
-	assert_not_null(testdir_path);
+	testdir_path = malloc_s(strlen(argv[0]) + 1);
 	strcpy(testdir_path, argv[0]);
 	strcpy(testdir_path, dirname(testdir_path));
 
@@ -264,17 +282,20 @@ main(int argc, char **argv)
 		char c;
 		char *bad_char;
 
-		while ((c = getopt(argc, argv, ":s:a")) != -1) {
+		while ((c = getopt(argc, argv, ":has:")) != -1) {
 			switch (c) {
+			case 'h':
+				usage(argv[0]);
+				exit(0);
+			case 'a':
+				run_all_flag = 1;
+				break;
 			case 's':
 				seed = strtol(optarg, &bad_char, 10);
 				if (*bad_char) {
 					fprintf(stderr, "Invalid seed: %s\n", optarg);
-					exit(1);
+					assert_quiet(0);
 				}
-				break;
-			case 'a':
-				run_all_flag = 1;
 				break;
 			case '?':
 				fprintf(stderr, "Unknown option: -%c\n", optopt);
@@ -294,33 +315,33 @@ main(int argc, char **argv)
 	/* Find suites */
 	if (run_all_flag) {
 		struct dirent **suite_dirs;
-		suite_dirs = NULL;
 
+		if (argc != optind)
+			assert_quiet(0);
+
+		suite_dirs = NULL;
 		n_suites =
 			(size_t)scandir(testdir_path, &suite_dirs, is_suite_dir, alphasort);
 		assert_ulong_neq(n_suites, -1UL);
-		suite_paths = malloc((n_suites + 1) * sizeof(*suite_paths));
-		assert_not_null(suite_dirs);
+		suite_paths = malloc_s((n_suites + 1) * sizeof(*suite_paths));
 		for (size_t i = 0; i < n_suites; i++) {
 			suite_paths[i] = suite_dirs[i]->d_name;
 		}
 	} else {
 		n_suites = (unsigned)(argc - optind);
-		suite_paths = malloc((n_suites + 1) * sizeof(*suite_paths));
-		assert_not_null(suite_paths);
+		suite_paths = malloc_s((n_suites + 1) * sizeof(*suite_paths));
 		for (size_t i = 0; i < n_suites; i++)
 			suite_paths[i] = argv[(unsigned)optind + i];
 	}
 	suite_paths[n_suites] = NULL;
-	suites = malloc(n_suites * sizeof(*suites));
+	suites = malloc_s(n_suites * sizeof(*suites));
 
 	/* Collect all the tests */
 	{
 		char *suite_path;
 		struct dirent **test_ents;
 
-		suite_path = malloc(strlen(testdir_path) + max_strlen(suite_paths) + 2);
-		assert_not_null(suite_path);
+		suite_path = malloc_s(strlen(testdir_path) + max_strlen(suite_paths) + 2);
 		for (size_t i = 0; i < n_suites; i++) {
 			sprintf(suite_path, "%s/%s", testdir_path, suite_paths[i]);
 			suites[i].n_tests =
@@ -328,7 +349,7 @@ main(int argc, char **argv)
 			assert_quiet((long)suites[i].n_tests != -1);
 
 			suites[i].name = suite_paths[i];
-			suites[i].test_basenames = malloc(
+			suites[i].test_basenames = malloc_s(
 				(suites[i].n_tests + 1) * sizeof(*suites[i].test_basenames)
 			);
 			assert_not_null(suites[i].test_basenames);

@@ -4,10 +4,11 @@
 .SUFFIXES: .c .o
 
 CC = cc
-CWARN = -pedantic -Wall -Wextra -Wpedantic -Wbad-function-cast \
+CWARN = -pedantic -Wall -Wextra -Wbad-function-cast \
 		-Wcast-align -Wcast-qual -Wfloat-equal -Wformat=2 \
-		-Wno-missing-declarations -Wmissing-include-dirs -Wnested-externs \
-		-Wpointer-arith -Wsequence-point -Wshadow -Wsign-conversion \
+		-Wdeclaration-after-statement -Wno-missing-declarations \
+		-Wmissing-include-dirs -Wnested-externs -Wpointer-arith \
+		-Wsequence-point -Wshadow -Wsign-conversion \
 		-Wstrict-prototypes -Wswitch -Wundef -Wunreachable-code \
 		-Wno-unused-function -Wwrite-strings -Wno-format-extra-args \
 		-Wno-unused-variable -Wno-unused-parameter

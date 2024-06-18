@@ -8,8 +8,8 @@
 -pedantic
 -Wall
 -Wextra
--Wpedantic
 -Wbad-function-cast
+-Wdeclaration-after-statement
 
 -Wcast-align
 -Wcast-qual
@@ -33,3 +33,5 @@
 -Wno-format-extra-args
 -Wno-unused-function
 -Wwrite-strings
+
+-fanalyzer
