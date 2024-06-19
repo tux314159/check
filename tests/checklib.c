@@ -8,7 +8,7 @@ random_string(char *buf, size_t width)
 {
 	assert_ulong(width, >, 0L);
 	for (size_t i = 0; i < width - 1; i++) {
-		buf[i] = random() % (127 - 33) + 33;
+		buf[i] = (unsigned)random() % (127 - 33) + 33;
 	}
 	buf[width - 1] = '\0';
 }

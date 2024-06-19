@@ -279,7 +279,7 @@ main(int argc, char **argv)
 	srand(time(NULL));
 	seed = (unsigned)rand() / 2;
 	{
-		char c;
+		int c;
 		char *bad_char;
 
 		while ((c = getopt(argc, argv, ":has:")) != -1) {
@@ -305,7 +305,7 @@ main(int argc, char **argv)
 				exit(1);
 
 			default:
-				assert_int(0, ==, 1);
+				assert_quiet(0);
 			}
 		}
 	}
