@@ -36,7 +36,7 @@ test:
 
 # Clean
 clean:
-	find -name "*.o" -delete
-	find -name "*.tst" -delete
-	find -name "*.a" -delete
-	find -name "*.gen" -delete
+	find . -name "*.o" -delete
+	find . -name "*.tst" -delete
+	find . -name "*.a" -delete
+	find . -name "*.gen" -delete
