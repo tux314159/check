@@ -15,7 +15,7 @@ CWARN = -Wall -Wextra -Wbad-function-cast -Wcast-align -Wcast-qual \
 CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
 		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
 LDFLAGS = $(CFLAGS)
-LDLIBS = -lpthread -ldl
+LDLIBS = -lpthread
 OBJS = src/hash.o src/table.o
 
 all: test

@@ -34,7 +34,7 @@ printf \
 	"$tests" "$test_dir" "$test_dir"
 
 printf \
-	"%s/check: %s/check.c %s/checklib.o %s/check.h\n\t\$(CC) \$(LDFLAGS) -rdynamic -o \$@ \$(LDLIBS) -ldl %s/check.c\n" \
+	"%s/check: %s/check.c %s/checklib.o %s/check.h\n\t\$(CC) \$(LDFLAGS) -rdynamic -o \$@ \$(LDLIBS) %s/check.c\n" \
 	"$test_dir" "$test_dir" "$test_dir" "$test_dir" "$test_dir";
 
 printf \
