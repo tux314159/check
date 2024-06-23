@@ -41,7 +41,4 @@ test:
 
 # Clean
 clean:
-	find . -name "*.o" -delete
-	find . -name "*.tst" -delete
-	find . -name "*.a" -delete
-	find . -name "*.gen" -delete
+	find . -name "*.o" -or -name "*.tst" -or -name "*.a" -or -name "*.gen" -delete
