@@ -6,6 +6,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* ANSI escapes */
+#define T_DIM "\x1b[2m"
+#define T_BOLD "\x1b[1m"
+#define T_ITAL "\x1b[3m"
+#define T_LINE "\x1b[4m"
+#define T_RED "\x1b[38;5;1m"
+#define T_GREEN "\x1b[38;5;2m"
+#define T_YELLOW "\x1b[38;5;3m"
+#define T_BLUE "\x1b[38;5;4m"
+#define T_NORM "\x1b[0m"
+
 /* Utility macros */
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -19,34 +30,38 @@ enum MsgT {
 	msgt_end,
 };
 static const char *_msgtstr[msgt_end] =
-	{"INFO", "WARN", "ERROR"}; // not a macro so we don't forget to update it
+	{T_BLUE, T_YELLOW, T_RED}; // not a macro so we don't forget to update it
 
-#define test_output(type, msg, ...)                          \
-	do {                                                     \
-		printf("%s " msg "\n", _msgtstr[type], __VA_ARGS__); \
-		fflush(stdout);                                      \
+#define test_output(type, msg, ...)                            \
+	do {                                                       \
+		printf(                                                \
+			" > " T_DIM "%s:%d: " T_NORM "%s" msg T_NORM "\n", \
+			__FILE__,                                          \
+			__LINE__,                                          \
+			_msgtstr[type],                                    \
+			__VA_ARGS__                                        \
+		);                                                     \
+		fflush(stdout);                                        \
 	} while (0)
 
 /* All the asserts */
 
 extern jmp_buf _assert_trampoline;
 
-#define _ASSERT_CMP(x, y, op, fmt)                                          \
-	do {                                                                    \
-		if (!(x op y)) {                                                    \
-			test_output(                                                    \
-				msgt_err,                                                   \
-				"%s:%d: assert(%s " #op " %s) FAILED, " fmt " " #op " " fmt \
-				" is false",                                                \
-				__FILE__,                                                   \
-				__LINE__,                                                   \
-				#x,                                                         \
-				#y,                                                         \
-				x,                                                          \
-				y                                                           \
-			);                                                              \
-			longjmp(_assert_trampoline, 1);                                 \
-		}                                                                   \
+#define _ASSERT_CMP(x, y, op, fmt)                                   \
+	do {                                                             \
+		if (!(x op y)) {                                             \
+			test_output(                                             \
+				msgt_err,                                            \
+				"assert(%s " #op " %s) FAILED, " fmt " " #op " " fmt \
+				" is false",                                         \
+				#x,                                                  \
+				#y,                                                  \
+				x,                                                   \
+				y                                                    \
+			);                                                       \
+			longjmp(_assert_trampoline, 1);                          \
+		}                                                            \
 	} while (0)
 
 #define assert_null(x) _ASSERT_CMP(x, NULL, ==, "NULL")
@@ -70,10 +85,10 @@ extern jmp_buf _assert_trampoline;
 #define assert_llong_eq(x, y) assert_llong(x, ==, y)
 #define assert_llong_neq(x, y) assert_llong(x, !=, y)
 
-#define assert_quiet(expr)                    \
-	do {                                      \
-		if (!(expr))                          \
-			longjmp(_assert_trampoline, 1);   \
+#define assert_quiet(expr)                  \
+	do {                                    \
+		if (!(expr))                        \
+			longjmp(_assert_trampoline, 1); \
 	} while (0);
 
 /* Random generators */

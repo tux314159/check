@@ -16,15 +16,13 @@
 /* Configuration */
 #define TEST_SUFFIX ".tst"
 
-/* ANSI escapes */
-#define T_DIM "\x1b[2m"
-#define T_BOLD "\x1b[1m"
-#define T_ITAL "\x1b[3m"
-#define T_LINE "\x1b[4m"
-#define T_GREEN "\x1b[38;5;2m"
-#define T_YELLOW "\x1b[38;5;3m"
-#define T_RED "\x1b[38;5;1m"
-#define T_NORM "\x1b[0m"
+/* "Feature test macros" */
+#if HAVE_FORK
+#define child_exit(n) _exit(n)
+#else
+#define fork() 0
+#define child_exit(n)
+#endif
 
 struct TestEnv;
 
@@ -128,44 +126,38 @@ redirect_io_end(int output_file, int stdout_save, int stderr_save)
 static int
 run_test_so(
 	const char *path,
-	struct TestEnv *env,
-	void (*teardown_env)(struct TestEnv *)
+	struct TestEnv *env
 )
 {
-	int child_stat;
+	int child_stat, exit_status;
 	pid_t pid;
 
 	void *test_obj;
 	void (*test)(struct TestEnv *env);
 
-	pid = fork();
+	pid = fork();  // may just be 0 depending on HAVE_FORK!
 	assert_int_neq(pid, -1);
 	if (pid) { // parent
 		assert_int_neq(wait(&child_stat), -1);
+		exit_status = WEXITSTATUS(child_stat);
 	} else { // child
 		test_obj = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
 		assert_not_null(test_obj);
 
 		test = (void (*)(struct TestEnv *))dlsym(test_obj, "test");
 		assert_not_null(test);
-		if (!setjmp(_assert_trampoline))
+		if (!setjmp(_assert_trampoline)) {
 			test(env);
-		else
-			goto fail;
-
-		if (!setjmp(_assert_trampoline))
-			teardown_env(env);
-		else
-			goto fail;
+			exit_status = 0;
+		} else {
+			exit_status = 1;
+		}
 
 		dlclose(test_obj);
-		_exit(0);
-	fail:
-		dlclose(test_obj);
-		_exit(1);
+		child_exit(exit_status);
 	}
 
-	return WEXITSTATUS(child_stat);
+	return exit_status;
 }
 
 static void
@@ -231,8 +223,25 @@ run_suite(const struct Suite *suite)
 			suite->test_basenames[i]
 		);
 		printf(" test " T_ITAL "%s" T_NORM "... ", suite->test_basenames[i]);
+
 		redirect_io_begin(output_file);
-		exit_status = run_test_so(path, env, teardown_env);
+#if HAVE_FORK
+		exit_status = run_test_so(path, env);
+#else // setup/teardown each time if we can't copy the address space
+		if (!setjmp(_assert_trampoline)) {
+			setup_env(&env);
+		} else {
+			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
+			continue;
+		}
+		exit_status = run_test_so(path, env);
+		if (!setjmp(_assert_trampoline)) {
+			teardown_env(env);
+		} else {
+			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
+			continue;
+		}
+#endif
 		output = redirect_io_end(output_file, stdout_save, stderr_save);
 
 		if (exit_status == 0)
@@ -242,6 +251,17 @@ run_suite(const struct Suite *suite)
 		printf("%s", output);
 		free(output);
 	}
+
+#if HAVE_FORK // if forked, do final teardown
+	printf(" tearing down environment... ");
+	if (!setjmp(_assert_trampoline)) {
+		teardown_env(env);
+		printf(T_GREEN T_BOLD "OK" T_NORM "\n");
+	} else {
+		printf(T_RED T_BOLD "FAIL" T_NORM "\n");
+	}
+#endif
+
 	dlclose(setup_obj);
 	close(stdout_save);
 	close(stderr_save);

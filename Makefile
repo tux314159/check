@@ -13,7 +13,7 @@ CWARN = -Wall -Wextra -Wbad-function-cast -Wcast-align -Wcast-qual \
 		-Wno-format-extra-args -Wno-unused-variable \
 		-Wno-unused-parameter
 CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
-		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
+		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN) -DHAVE_FORK=1
 LDFLAGS = $(CFLAGS)
 LDLIBS = -lpthread
 OBJS = src/hash.o src/table.o
