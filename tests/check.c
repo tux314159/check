@@ -16,14 +16,6 @@
 /* Configuration */
 #define TEST_SUFFIX ".tst"
 
-/* "Feature test macros" */
-#if HAVE_FORK
-#define child_exit(n) _exit(n)
-#else
-#define fork() 0
-#define child_exit(n)
-#endif
-
 struct TestEnv;
 
 struct Suite {
@@ -135,7 +127,7 @@ run_test_so(
 	void *test_obj;
 	void (*test)(struct TestEnv *env);
 
-	pid = fork();  // may just be 0 depending on HAVE_FORK!
+	pid = fork();
 	assert_int_neq(pid, -1);
 	if (pid) { // parent
 		assert_int_neq(wait(&child_stat), -1);
@@ -154,7 +146,7 @@ run_test_so(
 		}
 
 		dlclose(test_obj);
-		child_exit(exit_status);
+		_exit(exit_status);
 	}
 
 	return exit_status;
@@ -225,23 +217,7 @@ run_suite(const struct Suite *suite)
 		printf(" test " T_ITAL "%s" T_NORM "... ", suite->test_basenames[i]);
 
 		redirect_io_begin(output_file);
-#if HAVE_FORK
 		exit_status = run_test_so(path, env);
-#else // setup/teardown each time if we can't copy the address space
-		if (!setjmp(_assert_trampoline)) {
-			setup_env(&env);
-		} else {
-			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
-			continue;
-		}
-		exit_status = run_test_so(path, env);
-		if (!setjmp(_assert_trampoline)) {
-			teardown_env(env);
-		} else {
-			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
-			continue;
-		}
-#endif
 		output = redirect_io_end(output_file, stdout_save, stderr_save);
 
 		if (exit_status == 0)
@@ -252,7 +228,6 @@ run_suite(const struct Suite *suite)
 		free(output);
 	}
 
-#if HAVE_FORK // if forked, do final teardown
 	printf(" tearing down environment... ");
 	if (!setjmp(_assert_trampoline)) {
 		teardown_env(env);
@@ -260,7 +235,6 @@ run_suite(const struct Suite *suite)
 	} else {
 		printf(T_RED T_BOLD "FAIL" T_NORM "\n");
 	}
-#endif
 
 	dlclose(setup_obj);
 	close(stdout_save);

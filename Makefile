@@ -3,9 +3,6 @@
 .PHONY: all test clean
 .SUFFIXES: .c .o
 
-# Feature tests, change these
-HAVE_FORK = 1
-
 # Compiler config
 CC = cc
 CWARN = -Wall -Wextra -Wbad-function-cast -Wcast-align -Wcast-qual \
@@ -17,8 +14,7 @@ CWARN = -Wall -Wextra -Wbad-function-cast -Wcast-align -Wcast-qual \
 		-Wno-format-extra-args -Wno-unused-variable \
 		-Wno-unused-parameter
 CFLAGS = -std=c99 -O2 -fpic -Iinclude/ \
-		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN) \
-		 -DHAVE_FORK=$(HAVE_FORK)
+		 -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE $(CWARN)
 LDFLAGS = $(CFLAGS)
 LDLIBS = -lpthread
 OBJS = src/hash.o src/table.o
