@@ -19,7 +19,7 @@ LDFLAGS = $(CFLAGS)
 LDLIBS = -lpthread
 OBJS = src/hash.o src/table.o
 
-all: test
+all: $(OBJS)
 
 .c.o:
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -31,7 +31,7 @@ src/table.o: src/table.c include/table.h include/hash.h
 src/hash.o: src/hash.c include/hash.h
 
 # Tests
-test:
+check:
 	tests/gen-makefile.sh
 	@$(MAKE) -fMakefile -ftests/Makefile.gen test_real
 
