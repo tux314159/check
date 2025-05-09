@@ -52,9 +52,35 @@ static void
 {
 	void *p;
 	p = malloc(n);
-	assert_not_null(p);
+	if (n > 0)
+		assert_not_null(p);
 	return p;
 }
+
+void *
+calloc_s(size_t nmemb, size_t size)
+{
+	void *p = calloc(nmemb, size);
+	if (nmemb * size != 0)
+		assert_not_null(p);
+	return p;
+}
+
+void *
+realloc_s(void *ptr, size_t size)
+{
+	void *p = realloc(ptr, size);
+	if (size > 0)
+		assert_not_null(p);
+	return p;
+}
+
+void
+free_s(void *ptr)
+{
+	free(ptr);
+}
+
 
 /* scandir(3p) filters */
 
@@ -83,7 +109,7 @@ is_suite_dir(const struct dirent *ent)
 	return S_ISDIR(sb.st_mode) && strcmp(ent->d_name, ".") &&
 		strcmp(ent->d_name, "..");
 
-	// TODO: actual robust checks
+	/* TODO: actual robust checks */
 }
 
 /* Actual logic */
@@ -129,10 +155,10 @@ run_test_so(
 
 	pid = fork();
 	assert_int_neq(pid, -1);
-	if (pid) { // parent
+	if (pid) { /* parent */
 		assert_int_neq(wait(&child_stat), -1);
 		exit_status = WEXITSTATUS(child_stat);
-	} else { // child
+	} else { /* child */
 		test_obj = dlopen(path, RTLD_LAZY | RTLD_LOCAL);
 		assert_not_null(test_obj);
 
@@ -183,7 +209,7 @@ run_suite(const struct Suite *suite)
 	teardown_env = (void (*)(struct TestEnv *))dlsym(setup_obj, "teardown_env");
 	assert_not_null(teardown_env);
 
-	// Look, realistically dup(2) and fflush won't fail
+	/* Look, realistically dup(2) and fflush won't fail */
 	stdout_save = dup(STDOUT_FILENO);
 	stderr_save = dup(STDERR_FILENO);
 	output_file = mkstemp(output_file_name);
@@ -246,7 +272,7 @@ run_suite(const struct Suite *suite)
 int
 main(int argc, char **argv)
 {
-	size_t n_suites;
+	ssize_t n_suites;
 	struct Suite *suites;
 	char **suite_paths;
 
@@ -262,9 +288,18 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	testdir_path = malloc_s(strlen(argv[0]) + 1);
-	strcpy(testdir_path, argv[0]);
-	strcpy(testdir_path, dirname(testdir_path));
+	/* Why the fuck, all this for a basename. Fuck posix */
+	{
+		char *testdir_path_tmp;
+		size_t testdir_path_len;
+
+		testdir_path = malloc_s(strlen(argv[0]) + 1);
+		strcpy(testdir_path, argv[0]);
+		testdir_path_tmp = dirname(testdir_path);
+		testdir_path_len = strlen(testdir_path_tmp);
+		testdir_path = realloc_s(testdir_path_tmp, testdir_path_len + 1);
+		memmove(testdir_path, testdir_path_tmp, testdir_path_len + 1);
+	}
 
 	/* Parse options */
 
@@ -314,21 +349,20 @@ main(int argc, char **argv)
 			assert_quiet(0);
 
 		suite_dirs = NULL;
-		n_suites =
-			(size_t)scandir(testdir_path, &suite_dirs, is_suite_dir, alphasort);
-		assert_ulong_neq(n_suites, -1UL);
-		suite_paths = malloc_s((n_suites + 1) * sizeof(*suite_paths));
-		for (size_t i = 0; i < n_suites; i++) {
+		n_suites = scandir(testdir_path, &suite_dirs, is_suite_dir, alphasort);
+		assert_long_neq(n_suites, -1L);
+		suite_paths = malloc_s(((size_t)n_suites + 1) * sizeof(*suite_paths));
+		for (ssize_t i = 0; i < n_suites; i++) {
 			suite_paths[i] = suite_dirs[i]->d_name;
 		}
 	} else {
 		n_suites = (unsigned)(argc - optind);
-		suite_paths = malloc_s((n_suites + 1) * sizeof(*suite_paths));
-		for (size_t i = 0; i < n_suites; i++)
+		suite_paths = malloc_s(((size_t)n_suites + 1) * sizeof(*suite_paths));
+		for (ssize_t i = 0; i < n_suites; i++)
 			suite_paths[i] = argv[(unsigned)optind + i];
 	}
 	suite_paths[n_suites] = NULL;
-	suites = malloc_s(n_suites * sizeof(*suites));
+	suites = malloc_s((size_t)n_suites * sizeof(*suites));
 
 	/* Collect all the tests */
 	{
@@ -336,7 +370,7 @@ main(int argc, char **argv)
 		struct dirent **test_ents;
 
 		suite_path = malloc_s(strlen(testdir_path) + max_strlen(suite_paths) + 2);
-		for (size_t i = 0; i < n_suites; i++) {
+		for (ssize_t i = 0; i < n_suites; i++) {
 			sprintf(suite_path, "%s/%s", testdir_path, suite_paths[i]);
 			suites[i].n_tests =
 				(size_t)scandir(suite_path, &test_ents, is_test_so, alphasort);
@@ -349,7 +383,7 @@ main(int argc, char **argv)
 			assert_not_null(suites[i].test_basenames);
 
 			for (size_t j = 0; j < suites[i].n_tests; j++) {
-				// strip ".tst"
+				/* strip ".tst" */
 				test_ents[j]->d_name[strlen(test_ents[j]->d_name) - 4] = '\0';
 				suites[i].test_basenames[j] = test_ents[j]->d_name;
 			}
@@ -363,7 +397,7 @@ main(int argc, char **argv)
 	{
 		printf("Using seed %d\n", seed);
 		srand(seed);
-		for (size_t i = 0; i < n_suites; i++) {
+		for (ssize_t i = 0; i < n_suites; i++) {
 			printf(
 				"Running test suite " T_BOLD "%s" T_NORM ":\n",
 				suites[i].name
