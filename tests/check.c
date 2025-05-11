@@ -47,8 +47,8 @@ usage(char *exe)
 	printf("Usage: %s [-h] [-a] [-s <seed>] [<suite1> <suite1> ...]\n", exe);
 }
 
-static void
-*malloc_s(size_t n)
+static void *
+malloc_s(size_t n)
 {
 	void *p;
 	p = malloc(n);
@@ -80,7 +80,6 @@ free_s(void *ptr)
 {
 	free(ptr);
 }
-
 
 /* scandir(3p) filters */
 
@@ -142,10 +141,7 @@ redirect_io_end(int output_file, int stdout_save, int stderr_save)
 }
 
 static int
-run_test_so(
-	const char *path,
-	struct TestEnv *env
-)
+run_test_so(const char *path, struct TestEnv *env)
 {
 	int child_stat, exit_status;
 	pid_t pid;
@@ -177,6 +173,21 @@ run_test_so(
 
 	return exit_status;
 }
+
+/* clang-format off */
+static int
+str_split_next(char **s, char c)
+{
+	int len = 0;
+	do {
+		if (!**s)
+			break;
+		len++;
+	} while (*++*s != c);
+	*s +=!!** s;
+	return len;
+}
+/* clang-format on */
 
 static void
 run_suite(const struct Suite *suite)
@@ -250,7 +261,15 @@ run_suite(const struct Suite *suite)
 			printf(T_GREEN T_BOLD "OK" T_NORM "\n");
 		else
 			printf(T_RED T_BOLD "FAIL" T_NORM "\n");
-		printf("%s", output);
+
+		int len;
+		for (char *line = output, *next = output; *line;
+		    len = str_split_next(&next, '\n')) {
+			if (len)
+				printf(" | %.*s\n", len, line);
+			line = next;
+		}
+
 		free(output);
 	}
 
@@ -369,7 +388,8 @@ main(int argc, char **argv)
 		char *suite_path;
 		struct dirent **test_ents;
 
-		suite_path = malloc_s(strlen(testdir_path) + max_strlen(suite_paths) + 2);
+		suite_path =
+			malloc_s(strlen(testdir_path) + max_strlen(suite_paths) + 2);
 		for (ssize_t i = 0; i < n_suites; i++) {
 			sprintf(suite_path, "%s/%s", testdir_path, suite_paths[i]);
 			suites[i].n_tests =

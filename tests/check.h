@@ -35,7 +35,7 @@ static const char *_msgtstr[msgt_end] =
 #define test_output(type, msg, ...)                            \
 	do {                                                       \
 		printf(                                                \
-			" > " T_DIM "%s:%d: " T_NORM "%s" msg T_NORM "\n", \
+			T_DIM "%s:%d: " T_NORM "%s" msg T_NORM "\n", \
 			__FILE__,                                          \
 			__LINE__,                                          \
 			_msgtstr[type],                                    \
